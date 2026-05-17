@@ -38,11 +38,14 @@ class NotesWindow(QMainWindow):
         self.editor.setPlaceholderText("写一点内容，然后试试打开、保存、字体和颜色对话框。")
         self.setCentralWidget(self.editor)
 
+        # 构建所有 QAction、菜单栏和工具栏
         self._build_actions()
         self.statusBar().showMessage("就绪")
 
+    # 构建所有 QAction、菜单栏和工具栏
     def _build_actions(self) -> None:
         open_action = QAction("打开", self)
+        # 设置快捷键为 Ctrl+O 系统级别快捷键
         open_action.setShortcut(QKeySequence.StandardKey.Open)
         open_action.triggered.connect(self.open_file)
 
@@ -57,8 +60,10 @@ class NotesWindow(QMainWindow):
         color_action.triggered.connect(self.choose_color)
 
         about_action = QAction("关于", self)
+        about_action.setMenuRole(QAction.MenuRole.AboutRole)
         about_action.triggered.connect(self.show_about)
-
+        
+        # 创建文件菜单，添加打开、保存动作
         file_menu = self.menuBar().addMenu("文件")
         file_menu.addAction(open_action)
         file_menu.addAction(save_action)
@@ -70,6 +75,7 @@ class NotesWindow(QMainWindow):
         help_menu = self.menuBar().addMenu("帮助")
         help_menu.addAction(about_action)
 
+        # 创建主工具栏，设置不可移动
         toolbar = QToolBar("主工具栏")
         toolbar.setMovable(False)
         toolbar.addAction(open_action)
@@ -84,6 +90,8 @@ class NotesWindow(QMainWindow):
         if not filename:
             return
         path = Path(filename)
+        # 解码文件内容为 UTF-8 编码
+        # 字节->字符串
         self.editor.setPlainText(path.read_text(encoding="utf-8"))
         self.current_file = path
         self.statusBar().showMessage(f"已打开：{path.name}", 3000)
@@ -95,6 +103,8 @@ class NotesWindow(QMainWindow):
                 return
             self.current_file = Path(filename)
 
+        # 编码文件内容为 UTF-8 编码
+        # 字符串->字节
         self.current_file.write_text(self.editor.toPlainText(), encoding="utf-8")
         self.statusBar().showMessage(f"已保存：{self.current_file.name}", 3000)
 

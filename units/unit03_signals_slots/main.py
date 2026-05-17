@@ -60,6 +60,7 @@ class TemperatureWindow(QWidget):
         # 创建温度模型实例，用于管理温度数据和业务逻辑
         self.model = TemperatureModel()
         self.title = QLabel()
+        # 设置内部标题标签居中对齐(水平+垂直居中)
         self.title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.slider = QSlider(Qt.Orientation.Horizontal)
