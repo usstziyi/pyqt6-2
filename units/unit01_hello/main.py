@@ -4,6 +4,8 @@
     python unit01_hello/main.py
 """
 
+# 延迟注解不会“隐藏”类型错误，只是让注解在 类定义时不会立即求值，解决前向引用问题。
+# 静态检查工具最终还是会解析字符串来做类型验证。
 from __future__ import annotations
 
 import sys

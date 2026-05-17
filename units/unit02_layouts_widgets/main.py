@@ -32,6 +32,7 @@ class ProfileForm(QWidget):
     """
 
     def __init__(self) -> None:
+        """初始化学习者资料表单。"""
         super().__init__()
         self.setWindowTitle("Unit 02 - Layouts and Widgets")
         self.resize(520, 360)
@@ -84,6 +85,7 @@ class ProfileForm(QWidget):
         self.setLayout(root_layout)
 
     def build_summary(self) -> None:
+        """根据表单输入生成摘要信息。"""
         name = self.name_input.text().strip()
         if not name:
             QMessageBox.warning(self, "缺少姓名", "请先填写姓名。")
@@ -96,6 +98,7 @@ class ProfileForm(QWidget):
         self.preview.setText(f"{name}，目标是成为{role}，已有 {years} 年 Python 经验。目标：{note}")
 
     def clear_form(self) -> None:
+        """清空表单中的所有输入字段和预览文本。"""
         self.name_input.clear()
         self.role_combo.setCurrentIndex(0)
         self.years_input.setValue(0)
@@ -104,6 +107,7 @@ class ProfileForm(QWidget):
 
 
 def main() -> int:
+    """主函数，创建应用实例、窗口并显示。"""
     app = QApplication(sys.argv)
     window = ProfileForm()
     window.show()
@@ -111,4 +115,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    """主函数入口。"""
     raise SystemExit(main())
