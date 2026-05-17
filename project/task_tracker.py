@@ -57,6 +57,10 @@ class Task:
     due_date: str
     done: bool = False
 
+    # 把一个方法绑定到“类”本身，而不是绑定到某个对象实例。
+    # 等价于定义了一个“类级别的构造辅助方法”，用于从字典创建 Task 对象。
+    # 它适合用来写“从某种数据创建对象”的工厂方法。这里的 cls 表示当前类，
+    # 通常用它来创建并返回一个新的对象。
     @classmethod
     def from_dict(cls, data: dict) -> "Task":
         return cls(
@@ -104,12 +108,15 @@ class TaskTableModel(QAbstractTableModel):
         return 0 if parent.isValid() else len(self.headers)
 
     def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
+        """
+        当表格需要显示、编辑、勾选、对齐某个单元格时，Qt 会问 Model：“这个位置、这个用途下，应该返回什么数据？”
+        """
         if not index.isValid():
             return None
 
         task = self._tasks[index.row()]
         column = index.column()
-
+        
         if role in (Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole):
             if column == 0:
                 return task.title
@@ -166,6 +173,7 @@ class TaskTableModel(QAbstractTableModel):
             flags |= Qt.ItemFlag.ItemIsUserCheckable
         return flags
 
+    # headerData() 负责把headers这些文字交给 QTableView，让表格顶部显示
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
             return self.headers[section]
@@ -196,7 +204,20 @@ class TaskTableModel(QAbstractTableModel):
 
 
 class TaskFilterProxyModel(QSortFilterProxyModel):
-    """把筛选逻辑放进代理模型，源模型仍然只关心原始数据。"""
+    """把筛选逻辑放进代理模型，源模型仍然只关心原始数据。
+    self.model = TaskTableModel(self.repository.load())  # 源模型
+    self.proxy = TaskFilterProxyModel()                  # 代理模型
+    self.proxy.setSourceModel(self.model)                # 代理模型包住源模型
+    self.table.setModel(self.proxy)                      # 表格使用代理模型
+
+    TaskRepository
+        ↓
+    TaskTableModel        ← 源模型，保存原始任务数据
+        ↓
+    TaskFilterProxyModel  ← 代理模型，负责筛选、排序
+        ↓
+    QTableView            ← 表格视图，负责显示
+    """
 
     def __init__(self) -> None:
         super().__init__()
