@@ -92,7 +92,7 @@ class TaskRepository:
     def save(self, tasks: list[Task]) -> None:
         self.path.write_text(json.dumps([asdict(task) for task in tasks], ensure_ascii=False, indent=2), encoding="utf-8")
 
-
+# 源模型
 class TaskTableModel(QAbstractTableModel):
     headers = ["标题", "优先级", "截止日期", "完成"]
     priorities = ["Low", "Medium", "High"]
@@ -202,7 +202,7 @@ class TaskTableModel(QAbstractTableModel):
             del self._tasks[row]
             self.endRemoveRows()
 
-
+# 代理模型
 class TaskFilterProxyModel(QSortFilterProxyModel):
     """把筛选逻辑放进代理模型，源模型仍然只关心原始数据。
     self.model = TaskTableModel(self.repository.load())  # 源模型
@@ -280,14 +280,18 @@ class TaskTrackerWindow(QMainWindow):
         self.setWindowTitle("PyQt6 实战项目 - 任务追踪器")
         self.resize(900, 560)
 
-        self.repository = TaskRepository(Path(__file__).with_name("tasks.json"))
-        self.model = TaskTableModel(self.repository.load())
-        self.proxy = TaskFilterProxyModel()
-        self.proxy.setSourceModel(self.model)
+        self.repository = TaskRepository(Path(__file__).with_name("tasks.json"))  # 初始化任务仓库，指定数据文件路径
+        self.model = TaskTableModel(self.repository.load())  # 源模型，加载任务数据
+        self.proxy = TaskFilterProxyModel()  # 代理模型，用于筛选和排序
+        self.proxy.setSourceModel(self.model)  # 将代理模型绑定到源模型
 
         self.report_thread: QThread | None = None
         self.report_worker: ReportWorker | None = None
 
+        # 自动保存定时器：延迟保存机制，避免频繁操作文件
+        # - 使用 QTimer 实现防抖（debounce），用户停止操作 600ms 后才触发保存
+        # - setSingleShot(True) 确保每次修改只触发一次保存，而不是周期性保存
+        # - 当模型数据发生变化时，调用 schedule_autosave() 重启定时器
         self.autosave_timer = QTimer(self)
         self.autosave_timer.setSingleShot(True)
         self.autosave_timer.setInterval(600)
@@ -311,6 +315,8 @@ class TaskTrackerWindow(QMainWindow):
         report_action = QAction("生成报告", self)
         report_action.triggered.connect(self.generate_report)
 
+        
+        # 构建菜单栏：提供文件操作入口，符合桌面应用标准交互模式
         file_menu = self.menuBar().addMenu("文件")
         file_menu.addAction(save_action)
         file_menu.addAction(reload_action)
@@ -318,6 +324,7 @@ class TaskTrackerWindow(QMainWindow):
         file_menu.addSeparator()
         file_menu.addAction(report_action)
 
+        # 构建工具栏：将常用操作以图标按钮形式呈现，提升操作效率
         toolbar = QToolBar("任务工具栏")
         toolbar.setMovable(False)
         toolbar.addAction(save_action)
@@ -346,13 +353,17 @@ class TaskTrackerWindow(QMainWindow):
         toggle_button = QPushButton("切换完成")
         toggle_button.clicked.connect(self.toggle_done_selected)
 
+        # 创建表单行布局：用于放置任务输入控件和操作按钮
+        # 布局结构：标题输入框(3倍拉伸) + 优先级选择(1倍) + 截止日期(1倍) + 三个操作按钮(固定宽度)
+        # stretch 参数说明：大于0的值表示该控件参与剩余空间的拉伸分配，数值越大分配越多空间
+        # stretch=0 表示该控件不参与拉伸，只占据自身的 sizeHint() 大小
         form_row = QHBoxLayout()
         form_row.addWidget(self.title_input, 3)
         form_row.addWidget(self.priority_combo, 1)
         form_row.addWidget(self.due_date_input, 1)
-        form_row.addWidget(add_button)
-        form_row.addWidget(remove_button)
-        form_row.addWidget(toggle_button)
+        form_row.addWidget(add_button, 0)
+        form_row.addWidget(remove_button, 0)
+        form_row.addWidget(toggle_button, 0)
 
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("按标题搜索")
@@ -362,15 +373,18 @@ class TaskTrackerWindow(QMainWindow):
         self.status_combo.addItems(["全部", "未完成", "已完成"])
         self.status_combo.currentTextChanged.connect(self.proxy.set_status)
 
+        # 创建筛选行布局：用于放置搜索输入框和状态筛选下拉框
+        # 布局结构：搜索输入框(3倍拉伸) + 状态筛选(1倍)
+        # 搜索框支持实时过滤任务标题，状态筛选支持按完成状态过滤
         filter_row = QHBoxLayout()
         filter_row.addWidget(self.search_input, 3)
         filter_row.addWidget(self.status_combo, 1)
 
-        self.table = QTableView()
-        self.table.setModel(self.proxy)
-        self.table.setSortingEnabled(True)
-        self.table.resizeColumnsToContents()
-        self.table.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+        self.table = QTableView()  # 创建表格视图控件，用于显示任务列表
+        self.table.setModel(self.proxy)  # 将代理模型设置到表格视图，实现筛选和排序功能
+        self.table.setSortingEnabled(True)  # 启用表格排序功能，用户可点击表头进行排序
+        self.table.resizeColumnsToContents()  # 根据内容自动调整列宽，确保数据完整显示
+        self.table.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)  # 设置选择行为为整行选择，方便用户批量操作任务
 
         root = QVBoxLayout()
         root.addLayout(form_row)
@@ -407,9 +421,15 @@ class TaskTrackerWindow(QMainWindow):
         self.table.resizeColumnsToContents()
 
     def selected_source_rows(self) -> list[int]:
+        # 获取表格的选择模型，用于获取用户当前选中的行
         selection = self.table.selectionModel()
         rows = []
         for proxy_index in selection.selectedRows():
+            # 核心原因一句话： 表格显示的是代理模型（过滤/排序后的视图），
+            # 表格绑定的是 self.proxy （代理模型），
+            # 所以用户的选中操作返回的是 代理模型坐标系 下的行号。
+            # 但数据操作必须针对源模型（原始数据）。
+            # 通过 mapToSource 将代理行号映射回源行号，才能正确操作原始数据。
             rows.append(self.proxy.mapToSource(proxy_index).row())
         return rows
 
@@ -417,11 +437,13 @@ class TaskTrackerWindow(QMainWindow):
         rows = self.selected_source_rows()
         if not rows:
             return
+        # 从源模型中删除记录
         self.model.remove_rows(rows)
 
     def toggle_done_selected(self) -> None:
         for row in self.selected_source_rows():
             task = self.model.task_at(row)
+            # 创建一个 QModelIndex ，定位到源模型第 row 行、第 3 列的单元格 。
             index = self.model.index(row, 3)
             state = Qt.CheckState.Unchecked if task.done else Qt.CheckState.Checked
             self.model.setData(index, state, Qt.ItemDataRole.CheckStateRole)
@@ -457,12 +479,16 @@ class TaskTrackerWindow(QMainWindow):
         self.report_worker.moveToThread(self.report_thread)
 
         self.report_thread.started.connect(self.report_worker.run)
+
         self.report_worker.finished.connect(self.handle_report_finished)
         self.report_worker.failed.connect(self.handle_report_failed)
+
         self.report_worker.finished.connect(self.report_thread.quit)
         self.report_worker.failed.connect(self.report_thread.quit)
+        
         self.report_worker.finished.connect(self.report_worker.deleteLater)
         self.report_worker.failed.connect(self.report_worker.deleteLater)
+
         self.report_thread.finished.connect(self.report_thread.deleteLater)
         self.report_thread.finished.connect(self.clear_report_refs)
 
