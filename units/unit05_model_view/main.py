@@ -27,7 +27,15 @@ class Task:
     owner: str
     done: bool = False
 
+"""任务表格模型，继承自 QAbstractTableModel。
 
+    该类实现了 Model/View 架构中的 Model 部分，负责：
+    - 存储和管理任务数据（Task 对象列表）
+    - 提供数据的读取、修改接口
+    - 通知视图数据变化
+    这就是面向对象继承的标准用法，
+    父类提供基础设施（通知机制），子类提供业务逻辑（数据操作） 。
+"""
 class TaskTableModel(QAbstractTableModel):
     """把数据和表格视图分离。
 
@@ -40,6 +48,7 @@ class TaskTableModel(QAbstractTableModel):
         super().__init__()
         self._tasks = tasks
 
+    # "顶层有 N 行，每个节点下没有子行" ——这定义了一个扁平的表格模型，不支持树形展开。
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return 0 if parent.isValid() else len(self._tasks)
 
@@ -116,8 +125,11 @@ class TaskTableModel(QAbstractTableModel):
 
     def remove_rows(self, rows: list[int]) -> None:
         for row in sorted(set(rows), reverse=True):
+            # 这对函数继承自 QAbstractTableModel，负责删除指定行的数据。
+            # 发送"即将删行"信号给 View
             self.beginRemoveRows(QModelIndex(), row, row)
             del self._tasks[row]
+            # 发送"删除完成"信号，触发 View 刷新
             self.endRemoveRows()
 
 
@@ -127,6 +139,7 @@ class TaskWindow(QWidget):
         self.setWindowTitle("Unit 05 - Model/View")
         self.resize(640, 360)
 
+        # 创建任务表格模型，并初始化一些示例数据
         self.model = TaskTableModel(
             [
                 Task("阅读 signals/slots 文档", "Ada"),
@@ -135,6 +148,7 @@ class TaskWindow(QWidget):
             ]
         )
 
+        # 创建表格视图，设置模型，并自动调整列宽以适应内容
         self.table = QTableView()
         self.table.setModel(self.model)
         self.table.resizeColumnsToContents()
