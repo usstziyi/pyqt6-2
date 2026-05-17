@@ -18,7 +18,8 @@ class TemperatureModel(QObject):
     这样 UI 可以订阅业务变化，但业务对象不需要知道 UI 的存在。
     """
 
-    # 自定义信号
+    # 自定义信号:PyQt 信号必须定义在类级别，不能写在 __init__ 里
+    # 可以通过 self.changed 正常访问
     changed = pyqtSignal(float)
 
     def __init__(self) -> None:
@@ -45,6 +46,7 @@ class TemperatureModel(QObject):
         if value == self._celsius:
             return
         self._celsius = value
+        # 发送 changed 信号，通知 UI 更新温度显示
         self.changed.emit(self._celsius)
 
 
@@ -63,9 +65,11 @@ class TemperatureWindow(QWidget):
         self.slider = QSlider(Qt.Orientation.Horizontal)
         self.slider.setRange(-20, 50)
         self.slider.setValue(int(self.model.celsius))
+        # 连接滑块值变化信号到模型的槽函数
         self.slider.valueChanged.connect(self.model.set_from_slider)
 
         reset_button = QPushButton("重置到 20°C")
+        # 连接重置按钮点击信号到模型的槽函数
         reset_button.clicked.connect(self.model.reset)
 
         layout = QVBoxLayout()
@@ -74,7 +78,7 @@ class TemperatureWindow(QWidget):
         layout.addWidget(reset_button)
         self.setLayout(layout)
 
-        # 模型变化时更新标题和滑块
+        # 连接模型的 changed 信号到窗口的槽函数
         self.model.changed.connect(self.render_temperature)
         self.render_temperature(self.model.celsius)
     # 渲染温度显示，更新标题和滑块
