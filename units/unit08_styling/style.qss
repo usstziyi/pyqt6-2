@@ -2,18 +2,13 @@ QWidget {
     font-size: 14px;
 }
 
-QMainWindow {
-    background: #f6f7f9;
-}
 
 QLabel#title {
     font-size: 22px;
     font-weight: 700;
-    color: #20242a;
 }
 
 QFrame[card="true"] {
-    background: #ffffff;
     border: 1px solid #d9dee7;
     border-radius: 8px;
 }
@@ -26,6 +21,4 @@ QFrame[status="urgent"] {
     border-color: #c23b3b;
 }
 
-QPushButton {
-    padding: 8px 12px;
-}
+
