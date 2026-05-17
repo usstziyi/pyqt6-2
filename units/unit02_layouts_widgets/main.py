@@ -49,6 +49,8 @@ class ProfileForm(QWidget):
         self.note_input = QTextEdit()
         self.note_input.setPlaceholderText("写下你想用 PyQt6 做什么。")
 
+        # 表单布局：两列形式，标签在左，控件在右
+        # label column | field column
         form_layout = QFormLayout()
         form_layout.addRow("姓名", self.name_input)
         form_layout.addRow("目标角色", self.role_combo)
@@ -58,7 +60,9 @@ class ProfileForm(QWidget):
         group = QGroupBox("学习者资料")
         group.setLayout(form_layout)
 
+        # 预览标签：用于显示生成的摘要信息
         self.preview = QLabel("填写表单后点击生成摘要。")
+        # 启用自动换行，确保长文本能正确显示
         self.preview.setWordWrap(True)
 
         submit_button = QPushButton("生成摘要")
@@ -68,6 +72,7 @@ class ProfileForm(QWidget):
         clear_button.clicked.connect(self.clear_form)
 
         button_row = QHBoxLayout()
+        # 添加弹性空间，将按钮推到右侧
         button_row.addStretch(1)
         button_row.addWidget(clear_button)
         button_row.addWidget(submit_button)
